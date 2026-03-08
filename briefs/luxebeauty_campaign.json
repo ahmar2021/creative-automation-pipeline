@@ -1,0 +1,19 @@
+{
+  "campaign_name": "Holiday Glow Collection",
+  "brand_id": "luxebeauty",
+  "region": "North America",
+  "audience": "Women aged 25-45",
+  "message": "Radiate confidence this season",
+  "products": [
+    {
+      "name": "GlowSerum Pro",
+      "description": "Anti-aging serum with vitamin C and hyaluronic acid",
+      "asset": null
+    },
+    {
+      "name": "LuxeLash Mascara",
+      "description": "Volumizing mascara for dramatic lashes",
+      "asset": null
+    }
+  ]
+}

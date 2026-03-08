@@ -1,0 +1,126 @@
+import json
+import os
+import sys
+
+from services.asset_service import get_existing_asset
+from services.image_generator_service import generate_image_candidates
+from services.creative_scoring_service import select_best_image
+from services.image_processor_service import create_variants
+from services.creative_composer_service import add_text_overlay, add_logo
+from services.legal_check_service import validate_message
+from services.storage_service import get_product_output_folder
+
+from utils.prompt_builder import build_prompt
+from utils.config import TEMP_DIR
+
+def run_pipeline(brief_path, brand_config_path=None, use_deepai=False):
+    """
+    API Controller - Orchestrates the creative automation pipeline
+    In production, this becomes API Gateway + Step Functions
+    """
+    
+    # Load campaign brief
+    with open(brief_path) as f:
+        brief = json.load(f)
+    
+    # Load brand guidelines based on brand_id from brief
+    brand_id = brief.get("brand_id")
+    if not brand_id:
+        raise ValueError("Campaign brief must include 'brand_id'")
+    
+    if not brand_config_path:
+        brand_config_path = f"brands/{brand_id}/brand_guidelines.json"
+    
+    with open(brand_config_path) as f:
+        brand_config = json.load(f)
+    
+    os.makedirs(TEMP_DIR, exist_ok=True)
+    
+    # Create single timestamp for this pipeline run
+    from datetime import datetime
+    run_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    print(f"\n{'='*60}")
+    print(f"Campaign: {brief['campaign_name']}")
+    print(f"Run ID: {run_timestamp}")
+    print(f"Image Generation: {'DeepAI (Real)' if use_deepai else 'Mock'}")
+    print(f"{'='*60}\n")
+    
+    # Legal compliance check (Lambda 1)
+    print("Running brand compliance checks...")
+    try:
+        validate_message(brief["message"], brand_config["banned_words"])
+        print("✓ Legal check passed\n")
+    except ValueError as e:
+        print(f"✗ Legal check failed: {e}\n")
+        return
+    
+    # Process each product
+    for product in brief["products"]:
+        print(f"\n{'─'*60}")
+        print(f"Processing: {product['name']}")
+        print(f"{'─'*60}")
+        
+        # Asset Service (Lambda 2)
+        asset = get_existing_asset(product, brief["brand_id"])
+        
+        if asset:
+            hero_image = asset
+            print(f"✓ Using existing asset: {asset}")
+        else:
+            # Image Generator Service (Lambda 3)
+            print("✓ Generating new images with GenAI...")
+            prompt = build_prompt(product, brief)
+            
+            output_prefix = os.path.join(
+                TEMP_DIR,
+                product['name'].replace(' ', '_')
+            )
+            
+            candidates = generate_image_candidates(prompt, output_prefix, n=4, use_deepai=use_deepai)
+            print(f"  Generated {len(candidates)} candidate images")
+            
+            # Creative Scoring Service (Lambda 4)
+            print("✓ Scoring images with vision model...")
+            hero_image, score = select_best_image(candidates, brief)
+            print(f"  Best image score: {score}/10")
+        
+        # Storage Service (Lambda 5)
+        output_folder = get_product_output_folder(product["name"], brief["campaign_name"], run_timestamp, brief["brand_id"])
+        
+        # Image Processor Service (Lambda 6)
+        print("✓ Creating aspect ratio variants...")
+        variants = create_variants(hero_image, output_folder)
+        print(f"  Created {len(variants)} variants")
+        
+        # Creative Composer Service (Lambda 7)
+        print("✓ Adding brand elements...")
+        for img in variants:
+            add_text_overlay(img, brief["message"], brand_config["primary_color"])
+            add_logo(img, brand_config["logo_path"])
+        
+        print(f"✓ Saved to: {output_folder}")
+    
+    print(f"\n{'='*60}")
+    print("Pipeline completed successfully!")
+    print(f"{'='*60}\n")
+
+if __name__ == "__main__":
+    # Parse command line arguments
+    import sys
+    
+    use_deepai = "--deepai" in sys.argv
+    
+    # Get brief path from command line or use default
+    brief_path = "briefs/hydralife_campaign.json"
+    for arg in sys.argv[1:]:
+        if arg.endswith('.json'):
+            brief_path = arg
+            break
+    
+    if use_deepai:
+        print("\n🚀 Using DeepAI for real image generation\n")
+    else:
+        print("\n🎭 Using mock images (add --deepai or --real flag for real generation)\n")
+    
+    run_pipeline(brief_path, use_deepai=use_deepai)

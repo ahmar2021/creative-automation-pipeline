@@ -1,0 +1,12 @@
+{
+  "brand_name": "TechGear",
+  "brand_id": "techgear",
+  "primary_color": "#0066FF",
+  "secondary_color": "#00CCFF",
+  "logo_path": "input_assets/techgear/logo.png",
+  "banned_words": [
+    "cheapest",
+    "guaranteed performance",
+    "unbreakable"
+  ]
+}

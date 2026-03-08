@@ -1,0 +1,11 @@
+{
+  "brand_name": "EcoHome",
+  "brand_id": "ecohome",
+  "primary_color": "#2D6A4F",
+  "secondary_color": "#95D5B2",
+  "logo_path": "input_assets/ecohome/logo.png",
+  "banned_words": [
+    "100% biodegradable",
+    "zero waste guaranteed"
+  ]
+}

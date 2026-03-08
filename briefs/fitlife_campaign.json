@@ -1,0 +1,24 @@
+{
+  "campaign_name": "New Year Fitness Goals",
+  "brand_id": "fitlife",
+  "region": "Global",
+  "audience": "Fitness enthusiasts aged 25-40",
+  "message": "Transform your body, transform your life",
+  "products": [
+    {
+      "name": "PowerFlex Protein",
+      "description": "Plant-based protein powder with 25g per serving",
+      "asset": null
+    },
+    {
+      "name": "EnduroMax Pre-Workout",
+      "description": "Natural energy boost for intense workouts",
+      "asset": null
+    },
+    {
+      "name": "RecoverPro Supplements",
+      "description": "Post-workout recovery formula",
+      "asset": null
+    }
+  ]
+}

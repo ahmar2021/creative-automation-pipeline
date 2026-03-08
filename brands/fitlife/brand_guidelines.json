@@ -1,0 +1,12 @@
+{
+  "brand_name": "FitLife",
+  "brand_id": "fitlife",
+  "primary_color": "#FF6B35",
+  "secondary_color": "#004E89",
+  "logo_path": "input_assets/fitlife/logo.png",
+  "banned_words": [
+    "miracle cure",
+    "instant results",
+    "lose weight overnight"
+  ]
+}

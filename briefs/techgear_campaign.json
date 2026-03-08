@@ -1,0 +1,19 @@
+{
+  "campaign_name": "Back to School Tech",
+  "brand_id": "techgear",
+  "region": "US",
+  "audience": "College students and parents",
+  "message": "Power your success this semester",
+  "products": [
+    {
+      "name": "StudyPro Laptop",
+      "description": "Lightweight laptop with 12-hour battery life",
+      "asset": null
+    },
+    {
+      "name": "SmartNote Tablet",
+      "description": "Digital note-taking tablet with stylus",
+      "asset": null
+    }
+  ]
+}

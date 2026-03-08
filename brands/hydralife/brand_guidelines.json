@@ -1,0 +1,13 @@
+{
+  "brand_name": "HydraLife",
+  "brand_id": "hydralife",
+  "primary_color": "#00AEEF",
+  "secondary_color": "#003366",
+  "logo_path": "input_assets/hydralife/logo.jpeg",
+  "banned_words": [
+    "miracle cure",
+    "guaranteed results",
+    "instant weight loss",
+    "100% effective"
+  ]
+}

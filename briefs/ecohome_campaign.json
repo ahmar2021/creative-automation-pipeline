@@ -1,0 +1,19 @@
+{
+  "campaign_name": "Sustainable Living",
+  "brand_id": "ecohome",
+  "region": "EU",
+  "audience": "Environmentally conscious homeowners",
+  "message": "Live green, live better",
+  "products": [
+    {
+      "name": "SolarCharge Power Bank",
+      "description": "Eco-friendly solar-powered charging solution",
+      "asset": null
+    },
+    {
+      "name": "BambooWare Kitchen Set",
+      "description": "Sustainable bamboo utensils and containers",
+      "asset": null
+    }
+  ]
+}

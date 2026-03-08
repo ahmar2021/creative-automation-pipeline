@@ -1,0 +1,19 @@
+{
+  "campaign_name": "Summer Hydration",
+  "brand_id": "hydralife",
+  "region": "UK",
+  "audience": "Young professionals",
+  "message": "Stay refreshed all summer",
+  "products": [
+    {
+      "name": "HydraBoost Water",
+      "description": "Premium electrolyte water",
+      "asset": "hydraboost.jpg"
+    },
+    {
+      "name": "VitaSpark Energy",
+      "description": "Natural vitamin energy drink",
+      "asset": null
+    }
+  ]
+}

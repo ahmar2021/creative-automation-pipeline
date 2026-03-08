@@ -1,0 +1,12 @@
+{
+  "brand_name": "LuxeBeauty",
+  "brand_id": "luxebeauty",
+  "primary_color": "#D4AF37",
+  "secondary_color": "#2C2C2C",
+  "logo_path": "input_assets/luxebeauty/logo.png",
+  "banned_words": [
+    "miracle cream",
+    "wrinkle-free overnight",
+    "permanent results"
+  ]
+}
