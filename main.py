@@ -4,6 +4,7 @@ import sys
 
 from services.asset_service import get_existing_asset, get_existing_asset_variants
 from services.image_generator_service import generate_image_candidates, generate_shaped_variants
+from services.upsampler_generator import MODEL_MAP
 from services.creative_scoring_service import select_best_image
 from services.image_processor_service import create_variants
 from services.creative_composer_service import add_text_overlay, add_logo, add_cta_button
@@ -13,7 +14,7 @@ from services.storage_service import get_product_output_folder
 from utils.prompt_builder import build_prompt
 from utils.config import TEMP_DIR, ASPECT_RATIOS
 
-def run_pipeline(brief_path, brand_config_path=None, use_deepai=False):
+def run_pipeline(brief_path, brand_config_path=None, use_deepai=False, upsampler_model=None):
     """
     API Controller - Orchestrates the creative automation pipeline
     In production, this becomes API Gateway + Step Functions
@@ -43,7 +44,8 @@ def run_pipeline(brief_path, brand_config_path=None, use_deepai=False):
     print(f"\n{'='*60}")
     print(f"Campaign: {brief['campaign_name']}")
     print(f"Run ID: {run_timestamp}")
-    print(f"Image Generation: {'DeepAI (Real)' if use_deepai else 'Mock'}")
+    gen_label = 'DeepAI (Real)' if use_deepai else f'Upsampler ({MODEL_MAP[upsampler_model]})' if upsampler_model else 'Mock'
+    print(f"Image Generation: {gen_label}")
     print(f"{'='*60}\n")
     
     # Legal compliance check (Lambda 1)
@@ -85,7 +87,7 @@ def run_pipeline(brief_path, brand_config_path=None, use_deepai=False):
             if missing:
                 print(f"✓ Generating missing ratios: {', '.join(missing)}")
                 prompt = build_prompt(product, brief)
-                generated = generate_shaped_variants(prompt, output_folder, use_deepai=use_deepai, ratios=missing)
+                generated = generate_shaped_variants(prompt, output_folder, use_deepai=use_deepai, upsampler_model=upsampler_model, ratios=missing)
                 variants.extend(generated.values())
                 print(f"  Generated {len(generated)} additional variants")
         elif asset:
@@ -95,11 +97,12 @@ def run_pipeline(brief_path, brand_config_path=None, use_deepai=False):
             print("✓ Creating aspect ratio variants...")
             variants = create_variants(hero_image, output_folder)
             print(f"  Created {len(variants)} variants")
-        elif use_deepai:
-            # Generate natively shaped images via DeepAI (one per aspect ratio)
-            print("✓ Generating shaped images with DeepAI...")
+        elif use_deepai or upsampler_model:
+            # Generate natively shaped images (one per aspect ratio)
+            method = 'DeepAI' if use_deepai else f'Upsampler ({MODEL_MAP[upsampler_model]})'
+            print(f"✓ Generating shaped images with {method}...")
             prompt = build_prompt(product, brief)
-            shaped = generate_shaped_variants(prompt, output_folder, use_deepai=True)
+            shaped = generate_shaped_variants(prompt, output_folder, use_deepai=use_deepai, upsampler_model=upsampler_model)
             variants = list(shaped.values())
             print(f"  Generated {len(variants)} shaped variants")
         else:
@@ -136,6 +139,10 @@ if __name__ == "__main__":
     import sys
     
     use_deepai = "--deepai" in sys.argv
+    upsampler_model = None
+    for arg in sys.argv[1:]:
+        if arg.startswith("--") and arg[2:] in MODEL_MAP:
+            upsampler_model = arg[2:]
     
     # Get brief path from command line or use default
     brief_path = "briefs/hydralife_campaign.json"
@@ -144,7 +151,7 @@ if __name__ == "__main__":
             brief_path = arg
             break
     
-    if not use_deepai:
-        print("\n🎭 Using mock images (add --deepai or --real flag for real generation)\n")
+    if not use_deepai and not upsampler_model:
+        print("\n🎭 Using mock images (add --deepai or --wan/--qwen/--zimage/--flux9b/--flux4b for real generation)\n")
     
-    run_pipeline(brief_path, use_deepai=use_deepai)
+    run_pipeline(brief_path, use_deepai=use_deepai, upsampler_model=upsampler_model)

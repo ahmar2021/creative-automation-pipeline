@@ -2,6 +2,7 @@ import os
 import shutil
 import random
 from services.deepai_generator import DeepAIImageGenerator, SHAPE_MAP
+from services.upsampler_generator import UpsamplerImageGenerator, ASPECT_RATIO_MAP, MODEL_MAP
 from utils.config import ASPECT_RATIOS
 
 def generate_image_candidates(prompt, output_prefix, n=4, use_deepai=False):
@@ -41,8 +42,10 @@ def generate_image_candidates(prompt, output_prefix, n=4, use_deepai=False):
     return images
 
 
-def generate_shaped_variants(prompt, output_folder, use_deepai=False, ratios=None):
-    """Generate one image per aspect ratio using DeepAI shape selection.
+def generate_shaped_variants(prompt, output_folder, use_deepai=False, upsampler_model=None, ratios=None):
+    """Generate one image per aspect ratio.
+    use_deepai: use DeepAI generator
+    upsampler_model: use Upsampler with given model key (e.g. 'wan', 'qwen')
     ratios: list of ratios to generate (e.g. ['9x16']). Defaults to all.
     Returns dict mapping ratio name to image path.
     """
@@ -59,6 +62,19 @@ def generate_shaped_variants(prompt, output_folder, use_deepai=False, ratios=Non
                 print(f"  Generating asset: {ratio} aspect ratio")
                 print(f"  Text prompt: {' '.join(prompt.split())}")
                 result = generator.generate_image(prompt, output_path, shape=shape)
+                if result:
+                    variants[ratio] = result
+                    print(f"  Image saved to: {output_path}")
+        finally:
+            generator.close()
+    elif upsampler_model:
+        generator = UpsamplerImageGenerator(model=upsampler_model, headless=False)
+        try:
+            for ratio in target_ratios:
+                output_path = os.path.join(output_folder, f"{ratio}.jpg")
+                print(f"  Generating asset: {ratio} aspect ratio")
+                print(f"  Text prompt: {' '.join(prompt.split())}")
+                result = generator.generate_image(prompt, output_path, shape=ratio)
                 if result:
                     variants[ratio] = result
                     print(f"  Image saved to: {output_path}")

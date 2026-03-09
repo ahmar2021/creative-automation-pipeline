@@ -7,7 +7,7 @@ Target Audience: {brief['audience']}
 Region: {brief['region']}
 Message: {product['name']}
 
-Style: modern lifestyle advertising photography similar to Nike or Apple campaigns
+Style: modern lifestyle advertising photography, clean and minimal
 Lighting: professional commercial
 Composition: product-focused with lifestyle context
 """
