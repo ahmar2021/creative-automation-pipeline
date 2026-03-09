@@ -1,0 +1,12 @@
+{
+  "brand_name": "GlossVeil",
+  "brand_id": "glossveil",
+  "primary_color": "#C2185B",
+  "secondary_color": "#F8BBD0",
+  "logo_path": "input_assets/glossveil/logo.png",
+  "banned_words": [
+    "permanent color",
+    "chemical free",
+    "anti-aging miracle"
+  ]
+}

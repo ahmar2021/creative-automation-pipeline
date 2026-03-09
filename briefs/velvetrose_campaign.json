@@ -1,0 +1,21 @@
+{
+  "campaign_name": "Self Care Sundays",
+  "brand_id": "velvetrose",
+  "region": "EU",
+  "audience": "Women aged 20-45",
+  "message": "Treat yourself, you deserve it",
+  "products": [
+    {
+      "name": "Rose Clay Detox Mask",
+      "description": "French rose clay mask for deep cleansing and pore refinement"
+    },
+    {
+      "name": "Honey Glow Sheet Mask",
+      "description": "Manuka honey infused sheet mask for intense hydration"
+    },
+    {
+      "name": "Midnight Repair Eye Cream",
+      "description": "Retinol eye cream for dark circles and fine lines"
+    }
+  ]
+}

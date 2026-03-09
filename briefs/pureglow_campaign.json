@@ -1,0 +1,21 @@
+{
+  "campaign_name": "Skin Reset Spring",
+  "brand_id": "pureglow",
+  "region": "Global",
+  "audience": "Women and men aged 25-40",
+  "message": "Reveal your natural glow",
+  "products": [
+    {
+      "name": "HydraVeil Moisturizer",
+      "description": "Lightweight daily moisturizer with hyaluronic acid and niacinamide"
+    },
+    {
+      "name": "BrightShield SPF Cream",
+      "description": "Tinted sunscreen with SPF 50 and vitamin E"
+    },
+    {
+      "name": "ClearPore Charcoal Cleanser",
+      "description": "Deep pore cleansing gel with activated charcoal and tea tree"
+    }
+  ]
+}

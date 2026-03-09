@@ -1,0 +1,12 @@
+{
+  "brand_name": "PureGlow",
+  "brand_id": "pureglow",
+  "primary_color": "#7E57C2",
+  "secondary_color": "#EDE7F6",
+  "logo_path": "input_assets/pureglow/logo.png",
+  "banned_words": [
+    "dermatologist guaranteed",
+    "cure acne forever",
+    "instant wrinkle removal"
+  ]
+}

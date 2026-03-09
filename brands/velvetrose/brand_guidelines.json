@@ -1,0 +1,12 @@
+{
+  "brand_name": "VelvetRose",
+  "brand_id": "velvetrose",
+  "primary_color": "#AD1457",
+  "secondary_color": "#FCE4EC",
+  "logo_path": "input_assets/velvetrose/logo.png",
+  "banned_words": [
+    "medical grade",
+    "FDA approved",
+    "permanent results"
+  ]
+}

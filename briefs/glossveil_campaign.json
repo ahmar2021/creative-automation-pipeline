@@ -1,0 +1,21 @@
+{
+  "campaign_name": "Bold Lips Summer",
+  "brand_id": "glossveil",
+  "region": "North America",
+  "audience": "Women aged 18-35",
+  "message": "Your boldest look starts here",
+  "products": [
+    {
+      "name": "Satin Kiss Lipstick",
+      "description": "Long-lasting satin finish lipstick in 12 shades"
+    },
+    {
+      "name": "Velvet Matte Lip Stain",
+      "description": "Smudge-proof matte lip stain with hydrating formula"
+    },
+    {
+      "name": "Crystal Gloss Lip Oil",
+      "description": "Nourishing lip oil with a high-shine glass finish"
+    }
+  ]
+}
