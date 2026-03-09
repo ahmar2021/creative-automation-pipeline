@@ -31,8 +31,7 @@ Generate complete branded campaign assets.
   "products": [
     {
       "name": "HydraBoost Water",
-      "description": "Premium electrolyte water",
-      "asset": "hydraboost.jpg"
+      "description": "Premium electrolyte water"
     }
   ],
   "formats": ["1x1", "9x16", "16x9"],

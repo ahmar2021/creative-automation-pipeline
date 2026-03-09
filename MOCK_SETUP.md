@@ -1,30 +1,45 @@
 # Mock Setup Instructions
 
-## To run the pipeline with mock images:
+## Pre-made Assets (LuxeBeauty)
 
-1. **Add your HydraBoost Water image:**
-   - Place `hydraboost.jpg` in `input_assets/`
+LuxeBeauty has pre-made images for all aspect ratios per product. No image generation needed.
 
-2. **Add mock generated images for VitaSpark Energy:**
-   - Place one or more images in `input_assets/mock_generated/`
-   - These will be used as mock outputs from the image generator
-   - Supported formats: `.jpg`, `.png`
-
-3. **Run the pipeline:**
-   ```bash
-   python3 main.py
-   ```
-
-## Current Setup:
-- ✓ Image generator uses mock images (no OpenAI API calls)
-- ✓ Scoring service uses mock scores (no OpenAI Vision API calls)
-- ✓ All other services work normally
-
-## Directory Structure:
 ```
-input_assets/
-├── hydraboost.jpg              # Existing asset for HydraBoost Water
-├── logo.png                    # Brand logo (optional)
-└── mock_generated/
-    └── vitaspark_mock.jpg      # Mock generated image for VitaSpark
+input_assets/luxebeauty/
+├── GlowSerum Pro/
+│   ├── 1x1.jpeg
+│   ├── 9x16.jpeg
+│   └── 16x9.jpeg
+└── LuxeLash Mascara/
+    ├── 1x1.jpeg
+    ├── 9x16.jpeg
+    └── 16x9.jpeg
 ```
+
+Run:
+```bash
+python3 main.py briefs/luxebeauty_campaign.json
+```
+
+## Mock Generated Images (Other Brands)
+
+Brands without pre-made assets use random images from `input_assets/mock_generated/`.
+
+```bash
+python3 main.py briefs/hydralife_campaign.json
+python3 main.py briefs/techgear_campaign.json
+```
+
+## Adding Pre-made Assets for a New Product
+
+1. Create a folder under `input_assets/{brand_id}/{product_name}/`
+2. Add images named `1x1.jpeg`, `9x16.jpeg`, `16x9.jpeg` (any of `.jpeg`, `.jpg`, `.png`)
+3. Add `"asset_folder": "Product Name"` to the product in the campaign brief
+4. Missing ratios are auto-generated via mock or DeepAI
+
+## Current Setup
+- ✓ Pre-made assets used when `asset_folder` is set in the brief
+- ✓ Missing ratios auto-generated (mock or DeepAI)
+- ✓ Mock images from `input_assets/mock_generated/` for brands without assets
+- ✓ Scoring service uses mock scores (no API calls)
+- ✓ Text overlay, CTA button, and logo applied to all variants

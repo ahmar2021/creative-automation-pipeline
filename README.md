@@ -20,7 +20,7 @@ Check      Service    Service    Service   Service
                                               │
                                               ▼
                                           Composer
-                                          (Text + Logo)
+                                       (Text + CTA + Logo)
         │
         ▼
 Brand-Organized Storage
@@ -29,21 +29,24 @@ Brand-Organized Storage
 ## Features
 
 ### Core Pipeline
-- **Multi-candidate generation**: Generates 4 images, scores them, selects best
+- **Multi-candidate generation**: Generates images per aspect ratio, scores them, selects best
+- **Native shape generation**: Uses DeepAI's shape options to generate images in the correct aspect ratio (Square, Tall, Wide) instead of cropping/resizing
+- **Pre-made asset support**: Products can reference a folder of pre-made aspect ratio images; missing ratios are auto-generated
 - **Mock scoring**: Random quality scores (7-9.5 range) for POC; production-ready for vision model integration
-- **Asset reuse**: Checks brand-specific asset folders before generating new images
-- **Multi-format output**: 1:1 (1080x1080 Instagram), 9:16 (1080x1920 TikTok/Reels), 16:9 (1920x1080 YouTube)
+- **Multi-format output**: 1:1 (Instagram), 9:16 (TikTok/Reels), 16:9 (YouTube)
 
 ### Brand Management
 - **Multi-brand support**: Separate folders for each brand's assets and guidelines
 - **Brand-specific compliance**: Each brand has its own banned words list
 - **Brand-organized output**: Output folders named `{brand_id}_{campaign_name}_{timestamp}`
 - **Logo overlay**: Automatic brand logo placement (top-right corner)
-- **Text overlay styling**: Semi-transparent white background (70% opacity), Futura Bold 80px font, black text, centered with proper padding
+- **Text overlay**: Campaign message in a semi-transparent white bar (capped at 15% of image height)
+- **CTA button**: "Shop now" button using the brand's primary color
 
 ### Image Generation Modes
+- **Pre-made Assets**: Uses images from `input_assets/{brand_id}/{product_name}/` when available
 - **Mock Mode (Default)**: Uses random images from `input_assets/mock_generated/` for fast testing
-- **DeepAI Mode**: Real image generation using DeepAI's text2img model via Selenium browser automation (700x700 images)
+- **DeepAI Mode**: Real image generation using DeepAI's text2img model via Selenium browser automation with native shape selection
 
 ### Lambda-Ready Design
 - Each service is independently deployable
@@ -55,38 +58,73 @@ Brand-Organized Storage
 ### Prerequisites
 
 ```bash
+# Upgrade pip first
+python3 -m pip install --upgrade pip
+
+# Install dependencies
 pip install -r requirements.txt
 ```
 
 ### Run Pipeline
 
-**Mock Mode (Default - Fast):**
+**Mock Mode with pre-made assets (LuxeBeauty):**
+
+The LuxeBeauty brief has pre-made images for all aspect ratios in `input_assets/luxebeauty/`. No image generation needed.
+
 ```bash
-python3 main.py
+python3 main.py briefs/luxebeauty_campaign.json
 ```
 
-**With Specific Brief:**
+**DeepAI image generation (HydraLife):**
+
+The HydraLife brief has no pre-made assets, so all images are generated via DeepAI. Generates 3 images per product (one per aspect ratio) using native shape selection.
+
 ```bash
-python3 main.py briefs/hydralife_campaign.json
+python3 main.py briefs/hydralife_campaign.json --deepai
 ```
 
-**Real Image Generation (DeepAI):**
+**Mock Mode without pre-made assets:**
+
+Brands without pre-made assets use random mock images from `input_assets/mock_generated/`.
+
 ```bash
-python3 main.py briefs/ecohome_campaign.json --deepai
+python3 main.py briefs/techgear_campaign.json
 ```
 
-**Modes:**
-- **Mock Mode**: Uses pre-existing mock images from `input_assets/mock_generated/` (fast, no API calls)
-- **DeepAI Mode**: Generates real images using DeepAI's text2img model via Selenium browser automation
-  - Navigates to deepai.org/machine-learning-model/text2img
-  - Enters prompt and triggers generation via Enter key
-  - Waits 5 seconds for generation
-  - Extracts 700x700 generated image
-  - Filters out "loading" placeholder images
+### Generation Modes Summary
+
+| Brief | Pre-made Assets | Mock Mode | DeepAI Mode |
+|-------|----------------|-----------|-------------|
+| **luxebeauty** | ✓ All 3 ratios per product | N/A (assets used) | N/A (assets used) |
+| **hydralife** | ✗ | Mock images | Real generation |
+| **techgear** | ✗ | Mock images | Real generation |
+| **fitlife** | ✗ | Mock images | Real generation |
+| **ecohome** | ✗ | Mock images | Real generation |
 
 ## Input Format
 
-Campaign brief in `briefs/campaign.json`:
+### Campaign Brief
+
+Products with pre-made assets (`briefs/luxebeauty_campaign.json`):
+
+```json
+{
+  "campaign_name": "Holiday Glow Collection",
+  "brand_id": "luxebeauty",
+  "region": "North America",
+  "audience": "Women aged 25-45",
+  "message": "Radiate confidence this season",
+  "products": [
+    {
+      "name": "GlowSerum Pro",
+      "description": "Anti-aging serum with vitamin C and hyaluronic acid",
+      "asset_folder": "GlowSerum Pro"
+    }
+  ]
+}
+```
+
+Products without assets (`briefs/hydralife_campaign.json`):
 
 ```json
 {
@@ -98,28 +136,37 @@ Campaign brief in `briefs/campaign.json`:
   "products": [
     {
       "name": "HydraBoost Water",
-      "description": "Premium electrolyte water",
-      "asset": "hydraboost.jpg"
-    },
-    {
-      "name": "VitaSpark Energy",
-      "description": "Natural vitamin energy drink",
-      "asset": null
+      "description": "Premium electrolyte water"
     }
   ]
 }
 ```
 
-Brand guidelines in `brands/{brand_id}/brand_guidelines.json`:
+### Pre-made Assets Structure
+
+When a product has `"asset_folder"`, the pipeline looks for images in:
+
+```
+input_assets/{brand_id}/{asset_folder}/
+├── 1x1.jpeg     # Square (Instagram)
+├── 9x16.jpeg    # Tall portrait (TikTok/Reels)
+└── 16x9.jpeg    # Wide landscape (YouTube)
+```
+
+If some ratios are missing, they are auto-generated via DeepAI (with `--deepai`) or mock.
+
+### Brand Guidelines
+
+`brands/{brand_id}/brand_guidelines.json`:
 
 ```json
 {
   "brand_name": "HydraLife",
   "brand_id": "hydralife",
-  "primary_color": "#0EA5E9",
-  "secondary_color": "#38BDF8",
-  "logo_path": "brands/hydralife/logo.png",
-  "banned_words": ["cheap", "fake", "miracle"]
+  "primary_color": "#00AEEF",
+  "secondary_color": "#003366",
+  "logo_path": "input_assets/hydralife/logo.jpeg",
+  "banned_words": ["miracle cure", "guaranteed results"]
 }
 ```
 
@@ -136,323 +183,107 @@ Brand guidelines in `brands/{brand_id}/brand_guidelines.json`:
 output/
 └── {brand_id}_{Campaign_Name}_{Timestamp}/
     ├── {Product_1}/
-    │   ├── 1x1.png      # 1080x1080 Instagram Feed
-    │   ├── 9x16.png     # 1080x1920 TikTok/Reels/Stories
-    │   └── 16x9.png     # 1920x1080 YouTube/Facebook
+    │   ├── 1x1.jpg      # 1080x1080 Instagram Feed
+    │   ├── 9x16.jpg     # 1080x1920 TikTok/Reels/Stories
+    │   └── 16x9.jpg     # 1920x1080 YouTube/Facebook
     └── {Product_2}/
-        ├── 1x1.png
-        ├── 9x16.png
-        └── 16x9.png
+        ├── 1x1.jpg
+        ├── 9x16.jpg
+        └── 16x9.jpg
 ```
 
-Example: `output/ecohome_Sustainable_Living_20260305_164155/`
-
-Each pipeline run creates a single timestamped folder with brand_id prefix for easy brand identification.
+Each output image includes:
+- The generated or pre-made product image
+- Campaign message text overlay (bottom bar, 15% of image height)
+- "Shop now" CTA button in the brand's primary color
+- Brand logo (top-right corner)
 
 ## Lambda Services
 
 ### 1. Legal Check Service
 **File**: `services/legal_check_service.py`
 - Validates campaign message against banned words
-- Ensures regulatory compliance
 
 ### 2. Asset Service
 **File**: `services/asset_service.py`
-- Checks if product assets exist
-- Returns path or triggers generation
+- Checks for pre-made aspect ratio assets in `input_assets/{brand_id}/{product_name}/`
+- Checks for single existing assets
+- Returns paths or triggers generation
 
 ### 3. Image Generator Service
 **File**: `services/image_generator_service.py`
-- Supports two modes: Mock (default) and DeepAI (real generation)
-- Mock mode: Uses random images from `input_assets/mock_generated/`
-- DeepAI mode: Generates images via browser automation with Selenium
-  - Uses `deepai_generator.py` for browser automation
-  - Generates 700x700 images
-  - Filters out loading placeholders
-- Uses optimized prompts for advertising quality
+- Generates images per aspect ratio with native shape selection
+- Supports DeepAI (real) and mock modes
+- Can generate only specific missing ratios
 
-### 4. Creative Scoring Service
+### 4. DeepAI Generator
+**File**: `services/deepai_generator.py`
+- Browser automation via Selenium + Chrome
+- Reuses Chrome profile cookies for authenticated access
+- Native shape selection: Square (1:1), Tall (9:16), Wide (16:9)
+- Polls for generated images with error detection
+
+### 5. Creative Scoring Service
 **File**: `services/creative_scoring_service.py`
-- Scores images with mock scores (random 7-9.5 range)
-- In production: Can use GPT-4 Vision for real quality scoring
-- Selects highest quality creative
-- Evaluates: product visibility, ad quality, audience appeal
+- Mock random scores (7-9.5 range) for POC
+- Production: GPT-4 Vision or Claude for real quality scoring
 
-### 5. Image Processor Service
+### 6. Image Processor Service
 **File**: `services/image_processor_service.py`
-- Creates aspect ratio variants
-- Optimizes for social platforms
+- Creates aspect ratio variants by resizing (used for single-asset flow)
 
-### 6. Creative Composer Service
+### 7. Creative Composer Service
 **File**: `services/creative_composer_service.py`
-- **Text Overlay**: 
-  - Semi-transparent white background (70% opacity, RGB 255,255,255,179)
-  - Background spans full image width, extends to bottom edge
-  - Futura Bold 80px font (falls back to Futura, Montserrat, Impact, Helvetica)
-  - Black text color, centered horizontally
-  - 30px padding top, 60px total bottom padding
-- **Logo Overlay**: Top-right corner placement
-- Ensures brand consistency across all variants
+- **Text overlay**: Campaign message in white bar (15% of image height, auto-scaling font)
+- **CTA button**: "Shop now" pill button with brand primary color background
+- **Logo overlay**: Top-right corner placement
 
-### 7. Storage Service
+### 8. Storage Service
 **File**: `services/storage_service.py`
-- Creates brand-organized output folders: `{brand_id}_{campaign_name}_{timestamp}`
-- Organizes by product and aspect ratio
-- Single timestamp per pipeline run for consistency
+- Creates brand-organized output folders
 
-## Key Design Decisions
+## Pipeline Priority Order
 
-### 1. Multi-Candidate Generation + Scoring
-Instead of generating one image, we:
-- Generate multiple candidates
-- Use vision model to score quality
-- Select the best creative
+For each product, the pipeline checks in this order:
 
-**Why**: Dramatically improves output quality. Used by Meta, Google Ads, Canva.
+1. **Pre-made variants** (`asset_folder`) → copies images, generates missing ratios
+2. **Single asset** (`asset`) → resizes into all ratios
+3. **DeepAI** (with `--deepai` flag) → generates 3 natively shaped images
+4. **Mock** (default) → random mock image + resize
 
-### 2. Modular Lambda Architecture
-Each pipeline step is an independent service.
+## Dependencies
 
-**Why**: 
-- Parallel execution
-- Independent scaling
-- Easy to replace/upgrade components
-
-### 3. Brand Compliance Layer
-Automatic enforcement of brand guidelines.
-
-**Why**: 
-- Ensures consistency across 100s of campaigns
-- Reduces manual review
-- Prevents regulatory issues
-
-### 4. Asset Reuse Before Generation
-Check storage before invoking GenAI.
-
-**Why**: 
-- Reduces GenAI costs
-- Faster execution
-- Consistent brand assets
-
-### 5. Brand-Based Organization
-Assets and guidelines organized by brand_id.
-
-**Structure**:
 ```
-input_assets/
-├── {brand_id}/           # Brand-specific existing assets
-└── mock_generated/       # Mock images for testing
-
-brands/
-└── {brand_id}/
-    ├── brand_guidelines.json
-    └── logo.png
-
-output/
-└── {brand_id}_{campaign}_{timestamp}/
+pillow>=10.0.0
+requests>=2.31.0
+selenium>=4.15.0
+webdriver-manager>=4.0.0
 ```
 
-**Why**:
-- Multi-brand support out of the box
-- Clear asset cataloging per brand
-- Brand-specific compliance rules
-- Scalable for enterprise with 100s of brands
+**System Requirements:**
+- Python 3.9+
+- Google Chrome (for DeepAI mode)
+- macOS fonts: Futura Bold (falls back to Helvetica, Impact)
 
 ## Scaling to Enterprise
 
 ### Current (POC)
 ```
-Local Python Script
-    ↓
-Sequential Processing
-    ↓
-File System Storage
+Local Python Script → Sequential Processing → File System Storage
 ```
 
 ### Production Architecture
 ```
-API Gateway
-    ↓
-Step Functions (Orchestrator)
-    ↓
-┌────────┬────────┬────────┬────────┐
-Lambda   Lambda   Lambda   Lambda   (Parallel)
-    ↓
-S3 Storage
-    ↓
-CloudFront CDN
+API Gateway → Step Functions → Parallel Lambdas → S3 + CloudFront
 ```
-
-### Migration Path
 
 | Component | POC | Production |
 |-----------|-----|------------|
 | **Orchestration** | main.py | API Gateway + Step Functions |
 | **Compute** | Local functions | AWS Lambda |
+| **Image Gen** | DeepAI (Selenium) | Bedrock (Stable Diffusion / Nova Canvas) |
 | **Storage** | File system | S3 + CloudFront |
-| **Triggers** | Manual | EventBridge (event-driven) |
-| **Scaling** | Single process | Auto-scaling, parallel |
-| **Monitoring** | Print statements | CloudWatch + X-Ray |
-
-### Benefits at Scale
-
-**100s of campaigns/month**:
-- Parallel Lambda execution
-- Event-driven triggers (new brief → auto-generate)
-- Pay-per-use pricing
-
-**Cost optimization**:
-- Asset reuse reduces GenAI calls
-- CLIP-based deduplication (future)
-- Caching frequently used elements
-
-**Quality control**:
-- Vision-based scoring ensures quality
-- Automated brand compliance
-- A/B testing integration (future)
-
-## Example Workflow
-
-```bash
-# 1. Create campaign brief
-vim briefs/my_campaign.json
-
-# 2. Add brand guidelines (if new brand)
-mkdir -p brands/mybrand
-vim brands/mybrand/brand_guidelines.json
-cp logo.png brands/mybrand/
-
-# 3. Add existing assets (optional)
-mkdir -p input_assets/mybrand
-cp product.jpg input_assets/mybrand/
-
-# 4. Run pipeline (mock mode - fast testing)
-python3 main.py briefs/my_campaign.json
-
-# 5. Run with real image generation
-python3 main.py briefs/my_campaign.json --deepai
-
-# 6. Review outputs
-open output/mybrand_My_Campaign_*/ProductName/1x1.png
-```
-
-## Advanced Features (Future)
-
-### CLIP-Based Deduplication
-```python
-# Before generating, check similarity
-embedding = get_clip_embedding(prompt)
-similar = search_existing_assets(embedding)
-if similarity > 0.9:
-    reuse_asset(similar)
-```
-
-### Layout Rules Engine
-```python
-rules = {
-    "logo_position": "top-right",
-    "text_position": "lower-third",
-    "min_product_size": "30%"
-}
-```
-
-### Multi-Language Localization
-```python
-{
-    "message": {
-        "en": "Stay refreshed",
-        "es": "Mantente fresco",
-        "fr": "Restez rafraîchi"
-    }
-}
-```
-
-## Limitations & Future Improvements
-
-- **Storage**: Local file system (production: S3 with CloudFront CDN)
-- **Processing**: Sequential (production: parallel Lambda execution)
-- **Scoring**: Mock random scores (production: GPT-4 Vision or Claude for real quality assessment)
-- **Image Generation**: DeepAI browser automation (production: Bedrock with Stable Diffusion or Nova Canvas)
-- **Typography**: Fixed text overlay design (future: dynamic layouts based on image content)
-- **Validation**: Rule-based banned words (future: vision-based brand compliance checks)
-
-## Dependencies
-
-- **selenium**: Browser automation for DeepAI image generation
-- **webdriver-manager**: Automatic ChromeDriver management
-- **Pillow**: Image processing and text overlay rendering
-- **requests**: HTTP requests for image downloads
-
-**Font Requirements:**
-- Futura Bold (preferred, system font on macOS)
-- Fallbacks: Futura, Montserrat Bold, Impact, Helvetica
-
-## Testing
-
-```bash
-# Test individual services
-python -c "from services.legal_check_service import validate_message; validate_message('Test message', [])"
-
-# Test full pipeline
-python main.py
-```
-
-## Deployment to AWS
-
-### Lambda Deployment
-```bash
-# Package each service
-cd services
-zip -r asset_service.zip asset_service.py ../utils/
-
-# Upload to Lambda
-aws lambda create-function \
-  --function-name asset-service \
-  --runtime python3.11 \
-  --handler asset_service.lambda_handler \
-  --zip-file fileb://asset_service.zip
-```
-
-### Step Functions Definition
-```json
-{
-  "StartAt": "LegalCheck",
-  "States": {
-    "LegalCheck": {
-      "Type": "Task",
-      "Resource": "arn:aws:lambda:...:legal-check",
-      "Next": "AssetCheck"
-    },
-    "AssetCheck": {
-      "Type": "Task",
-      "Resource": "arn:aws:lambda:...:asset-service",
-      "Next": "GenerateOrReuse"
-    }
-  }
-}
-```
-
-## Interview Talking Points
-
-### System Design
-- "Pipeline designed for serverless scaling with independent Lambda services"
-- "API controller orchestrates workflow, easily replaced with Step Functions"
-
-### Quality
-- "Multi-candidate generation with vision-based scoring ensures high-quality output"
-- "Similar to systems used by Meta Ads and Google Creative Studio"
-
-### Cost Optimization
-- "Asset reuse before generation reduces GenAI costs significantly"
-- "Can add CLIP-based deduplication for further optimization"
-
-### Brand Compliance
-- "Automated brand enforcement ensures consistency across hundreds of campaigns"
-- "Legal checks prevent regulatory issues before distribution"
-
-### Scalability
-- "Event-driven architecture supports 100s of campaigns monthly"
-- "Parallel Lambda execution enables sub-minute generation times"
+| **Scoring** | Mock random | GPT-4 Vision / Claude |
 
 ## License
 

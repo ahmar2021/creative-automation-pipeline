@@ -61,12 +61,12 @@ zip -r ../asset_service_lambda.zip .
 cd ..
 ```
 
-### Image Generator Service
+### Image Generator
 
 ```bash
 mkdir -p package
-pip install openai requests -t package/
-cp image_generator_service.py package/
+pip install requests selenium webdriver-manager -t package/
+cp image_generator_service.py deepai_generator.py package/
 cd package
 zip -r ../image_generator_lambda.zip .
 cd ..
@@ -76,7 +76,6 @@ cd ..
 
 ```bash
 mkdir -p package
-pip install openai -t package/
 cp creative_scoring_service.py package/
 cd package
 zip -r ../scoring_service_lambda.zip .
@@ -163,7 +162,7 @@ aws lambda create-function \
   --zip-file fileb://image_generator_lambda.zip \
   --timeout 300 \
   --memory-size 1024 \
-  --environment Variables={OPENAI_API_KEY=your-key}
+  --environment Variables={DEEPAI_API_KEY=your-key}
 
 # Scoring Service
 aws lambda create-function \
@@ -173,8 +172,7 @@ aws lambda create-function \
   --handler creative_scoring_service.lambda_handler \
   --zip-file fileb://scoring_service_lambda.zip \
   --timeout 120 \
-  --memory-size 512 \
-  --environment Variables={OPENAI_API_KEY=your-key}
+  --memory-size 512
 
 # Image Processor
 aws lambda create-function \
@@ -313,8 +311,8 @@ aws stepfunctions describe-execution \
 | Service | Usage | Cost |
 |---------|-------|------|
 | Lambda (7 functions) | ~2 min total | $0.0001 |
-| DALL-E 3 | 2 images | $0.08 |
-| GPT-4 Vision | 2 scores | $0.02 |
+| DeepAI | 2 products × 3 ratios | ~$0.06 |
+| Scoring (mock) | 2 scores | $0.00 |
 | S3 Storage | 6 images | $0.0001 |
 | **Total** | | **~$0.10** |
 
