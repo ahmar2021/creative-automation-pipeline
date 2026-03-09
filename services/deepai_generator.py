@@ -8,6 +8,14 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
+# Maps aspect ratios to DeepAI shape IDs (1-5):
+# 1=wide landscape, 2=mild landscape, 3=square, 4=mild portrait, 5=tall portrait
+SHAPE_MAP = {
+    "1x1": 3,
+    "9x16": 5,
+    "16x9": 1,
+}
+
 class DeepAIImageGenerator:
     def __init__(self, headless=False):
         options = webdriver.ChromeOptions()
@@ -22,17 +30,31 @@ class DeepAIImageGenerator:
         )
         self.url = "https://deepai.org/machine-learning-model/text2img"
     
-    def generate_image(self, prompt, output_path):
+    def _select_shape(self, shape_id):
+        """Select shape by calling selectShape(N) via JS. shape_id is 1-5."""
+        try:
+            # Open shape options panel first
+            WebDriverWait(self.driver, 10).until(
+                EC.element_to_be_clickable((By.ID, "modelEditButton"))
+            ).click()
+            time.sleep(1)
+            self.driver.execute_script(f"selectShape({shape_id})")
+            time.sleep(1)
+        except Exception as e:
+            print(f"  ✗ Could not select shape {shape_id}: {e}")
+
+    def generate_image(self, prompt, output_path, shape=None):
         """Generate image from prompt and save to output_path"""
-        print(f"Navigating to DeepAI...")
         self.driver.get(self.url)
         
-        # Wait for textarea to be clickable (replaces sleep)
-        print(f"Entering prompt: {prompt[:50]}...")
+        # Select shape before entering prompt if specified
+        if shape:
+            self._select_shape(shape)
+        
+        # Wait for textarea to be clickable
         textarea = WebDriverWait(self.driver, 15).until(
             EC.element_to_be_clickable((By.CSS_SELECTOR, "textarea"))
         )
-        print(f"Found textarea")
         
         # Enter text
         textarea.click()
@@ -45,77 +67,49 @@ class DeepAIImageGenerator:
             arguments[0].dispatchEvent(event);
         """, textarea)
         
-        print("Text entered, waiting for button to enable...")
         time.sleep(3)
         
-        # Wait for button and trigger submission
-        print("Waiting for generate button...")
-        
-        # Find the form and submit it directly
+        # Click the submit button
         try:
-            form = self.driver.find_element(By.TAG_NAME, "form")
-            print("Found form, submitting...")
-            self.driver.execute_script("arguments[0].submit();", form)
-            print("Form submitted!")
-        except:
-            # Fallback: try button click
-            button = None
-            selectors = [
-                (By.XPATH, "//button[contains(text(), 'Generate')]"),
-                (By.CSS_SELECTOR, "button[type='submit']"),
-                (By.CSS_SELECTOR, "button.generate-btn"),
-                (By.ID, "generate-button"),
-            ]
-            
-            for by, selector in selectors:
-                try:
-                    button = self.driver.find_element(by, selector)
-                    print(f"Found button with: {selector}")
-                    break
-                except:
-                    continue
-            
-            if not button:
-                print("Could not find button or form")
-                return None
-            
-            # Try pressing Enter on textarea instead
-            print("Trying Enter key on textarea...")
-            from selenium.webdriver.common.keys import Keys
-            textarea.send_keys(Keys.RETURN)
-            print("Enter pressed!")
+            btn = WebDriverWait(self.driver, 5).until(
+                EC.element_to_be_clickable((By.ID, "modelSubmitButton"))
+            )
+            self.driver.execute_script("arguments[0].click();", btn)
+        except Exception as e:
+            print(f"  ✗ Could not submit: {e}")
+            return None
         
-        # Wait for image generation
-        print("Waiting for image generation...")
-        time.sleep(5)
+        # Wait for generated image (poll for up to 30s)
+        img_url = None
+        for _ in range(15):
+            time.sleep(2)
+            # Check for error message
+            try:
+                err = self.driver.find_element(By.CSS_SELECTOR, ".try-it-result-error")
+                if err.is_displayed() and err.text.strip():
+                    print(f"  ✗ DeepAI error: {err.text.strip()}")
+                    return None
+            except:
+                pass
+            # Look for a generated image from api.deepai.org
+            srcs = self.driver.execute_script("""
+                var imgs = document.querySelectorAll('img');
+                for (var i = 0; i < imgs.length; i++) {
+                    if (imgs[i].src.includes('api.deepai.org') && imgs[i].src.includes('/output')) {
+                        return imgs[i].src;
+                    }
+                }
+                return null;
+            """)
+            if srcs:
+                img_url = srcs
+                break
+        
+        if not img_url:
+            print("  ✗ Could not find generated image")
+            return None
         
         try:
-            # Find all images and filter for the generated one
-            all_images = self.driver.find_elements(By.TAG_NAME, "img")
-            print(f"Found {len(all_images)} images on page")
-            
-            img_element = None
-            for idx, img in enumerate(all_images):
-                src = img.get_attribute("src")
-                width = img.size.get('width', 0)
-                height = img.size.get('height', 0)
-                
-                if width < 200 or height < 200:
-                    continue
-                
-                # Skip loading images and logos
-                if src and "loading" not in src.lower() and "data:image" not in src and "logo" not in src.lower() and "icon" not in src.lower():
-                    print(f"Image {idx}: {src[:80]}... (size: {width}x{height})")
-                    img_element = img
-                    break
-            
-            if not img_element:
-                print("Could not find generated image")
-                return None
-            
-            img_url = img_element.get_attribute("src")
-            print(f"Image URL: {img_url}")
-            
             # Download the image
             response = requests.get(img_url)
             
@@ -124,11 +118,10 @@ class DeepAIImageGenerator:
             with open(output_path, 'wb') as f:
                 f.write(response.content)
             
-            print(f"✓ Image saved to: {output_path}")
             return output_path
             
         except Exception as e:
-            print(f"✗ Error generating image: {e}")
+            print(f"  ✗ Error generating image: {e}")
             return None
     
     def close(self):

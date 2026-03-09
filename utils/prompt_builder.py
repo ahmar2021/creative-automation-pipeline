@@ -5,7 +5,7 @@ Product: {product['name']}
 Description: {product['description']}
 Target Audience: {brief['audience']}
 Region: {brief['region']}
-Campaign Message: {brief['message']}
+Message: {product['name']}
 
 Style: modern lifestyle advertising photography similar to Nike or Apple campaigns
 Lighting: professional commercial

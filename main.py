@@ -3,10 +3,10 @@ import os
 import sys
 
 from services.asset_service import get_existing_asset
-from services.image_generator_service import generate_image_candidates
+from services.image_generator_service import generate_image_candidates, generate_shaped_variants
 from services.creative_scoring_service import select_best_image
 from services.image_processor_service import create_variants
-from services.creative_composer_service import add_text_overlay, add_logo
+from services.creative_composer_service import add_text_overlay, add_logo, add_cta_button
 from services.legal_check_service import validate_message
 from services.storage_service import get_product_output_folder
 
@@ -64,39 +64,44 @@ def run_pipeline(brief_path, brand_config_path=None, use_deepai=False):
         # Asset Service (Lambda 2)
         asset = get_existing_asset(product, brief["brand_id"])
         
+        # Storage Service (Lambda 5)
+        output_folder = get_product_output_folder(product["name"], brief["campaign_name"], run_timestamp, brief["brand_id"])
+
         if asset:
             hero_image = asset
             print(f"✓ Using existing asset: {asset}")
+            # Resize existing asset into variants
+            print("✓ Creating aspect ratio variants...")
+            variants = create_variants(hero_image, output_folder)
+            print(f"  Created {len(variants)} variants")
+        elif use_deepai:
+            # Generate natively shaped images via DeepAI (one per aspect ratio)
+            print("✓ Generating shaped images with DeepAI...")
+            prompt = build_prompt(product, brief)
+            shaped = generate_shaped_variants(prompt, output_folder, use_deepai=True)
+            variants = list(shaped.values())
+            print(f"  Generated {len(variants)} shaped variants")
         else:
-            # Image Generator Service (Lambda 3)
+            # Mock flow: generate single image, score, then resize
             print("✓ Generating new images with GenAI...")
             prompt = build_prompt(product, brief)
-            
-            output_prefix = os.path.join(
-                TEMP_DIR,
-                product['name'].replace(' ', '_')
-            )
-            
-            candidates = generate_image_candidates(prompt, output_prefix, n=4, use_deepai=use_deepai)
+            output_prefix = os.path.join(TEMP_DIR, product['name'].replace(' ', '_'))
+            candidates = generate_image_candidates(prompt, output_prefix, n=4, use_deepai=False)
             print(f"  Generated {len(candidates)} candidate images")
-            
-            # Creative Scoring Service (Lambda 4)
+
             print("✓ Scoring images with vision model...")
             hero_image, score = select_best_image(candidates, brief)
             print(f"  Best image score: {score}/10")
-        
-        # Storage Service (Lambda 5)
-        output_folder = get_product_output_folder(product["name"], brief["campaign_name"], run_timestamp, brief["brand_id"])
-        
-        # Image Processor Service (Lambda 6)
-        print("✓ Creating aspect ratio variants...")
-        variants = create_variants(hero_image, output_folder)
-        print(f"  Created {len(variants)} variants")
+
+            print("✓ Creating aspect ratio variants...")
+            variants = create_variants(hero_image, output_folder)
+            print(f"  Created {len(variants)} variants")
         
         # Creative Composer Service (Lambda 7)
         print("✓ Adding brand elements...")
         for img in variants:
             add_text_overlay(img, brief["message"], brand_config["primary_color"])
+            add_cta_button(img, brand_config["primary_color"])
             add_logo(img, brand_config["logo_path"])
         
         print(f"✓ Saved to: {output_folder}")
@@ -118,9 +123,7 @@ if __name__ == "__main__":
             brief_path = arg
             break
     
-    if use_deepai:
-        print("\n🚀 Using DeepAI for real image generation\n")
-    else:
+    if not use_deepai:
         print("\n🎭 Using mock images (add --deepai or --real flag for real generation)\n")
     
     run_pipeline(brief_path, use_deepai=use_deepai)

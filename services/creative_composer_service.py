@@ -6,95 +6,115 @@ def hex_to_rgb(hex_color):
     hex_color = hex_color.lstrip("#")
     return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
 
+FONT_PATHS = [
+    ("/System/Library/Fonts/Supplemental/Futura.ttc", 1),
+    ("/System/Library/Fonts/Supplemental/Futura.ttc", 0),
+    ("/Users/ahmargh/Library/Fonts/Montserrat-Bold.ttf", None),
+    ("/System/Library/Fonts/Supplemental/Impact.ttf", None),
+    ("/System/Library/Fonts/Helvetica.ttc", None),
+]
+
+def _load_font(size):
+    for path, index in FONT_PATHS:
+        try:
+            return ImageFont.truetype(path, size, index=index) if index is not None else ImageFont.truetype(path, size)
+        except:
+            continue
+    return ImageFont.load_default()
+
+def _wrap_text(draw, text, font, max_width):
+    words = text.split()
+    lines, current = [], []
+    for word in words:
+        test = ' '.join(current + [word])
+        if draw.textbbox((0, 0), test, font=font)[2] <= max_width:
+            current.append(word)
+        else:
+            if current:
+                lines.append(' '.join(current))
+            current = [word]
+    if current:
+        lines.append(' '.join(current))
+    return '\n'.join(lines)
+
 def add_text_overlay(image_path, text, brand_color="#FFFFFF"):
-    """Lambda-ready function to add text overlay with brand color"""
+    """Add text overlay with white background bar capped at 15% of image height."""
     img = Image.open(image_path)
     draw = ImageDraw.Draw(img)
-    
     width, height = img.size
-    color = hex_to_rgb(brand_color)
-    
-    # Use large fixed font size
-    font_size = 80
-    
-    try:
-        # Try Futura Bold
-        font_bold = ImageFont.truetype("/System/Library/Fonts/Supplemental/Futura.ttc", font_size, index=1)
-    except:
-        try:
-            # Fallback to regular Futura
-            font_bold = ImageFont.truetype("/System/Library/Fonts/Supplemental/Futura.ttc", font_size)
-        except:
-            try:
-                # Try Montserrat Bold (user fonts)
-                font_bold = ImageFont.truetype("/Users/ahmargh/Library/Fonts/Montserrat-Bold.ttf", font_size)
-            except:
-                try:
-                    # Fallback to Impact
-                    font_bold = ImageFont.truetype("/System/Library/Fonts/Supplemental/Impact.ttf", font_size)
-                except:
-                    try:
-                        # Fallback to Helvetica
-                        font_bold = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", font_size)
-                    except:
-                        # Last resort: default font
-                        font_bold = ImageFont.load_default()
-    
-    # Wrap text to fit 60% of width
-    words = text.split()
-    lines = []
-    current_line = []
-    
-    for word in words:
-        test_line = ' '.join(current_line + [word])
-        bbox = draw.textbbox((0, 0), test_line, font=font_bold)
-        test_width = bbox[2] - bbox[0]
-        
-        if test_width <= width * 0.6:
-            current_line.append(word)
-        else:
-            if current_line:
-                lines.append(' '.join(current_line))
-            current_line = [word]
-    
-    if current_line:
-        lines.append(' '.join(current_line))
-    
-    wrapped_text = '\n'.join(lines)
-    
-    # Calculate text position
-    bbox = draw.textbbox((0, 0), wrapped_text, font=font_bold)
-    text_width = bbox[2] - bbox[0]
+
+    max_bar_height = int(height * 0.15)
+    padding = int(max_bar_height * 0.1)
+    # Reserve ~40% of bar for CTA button
+    cta_reserved = int(max_bar_height * 0.4)
+    text_budget = max_bar_height - cta_reserved - padding * 2
+
+    # Scale font to fit text within budget
+    font_size = max(16, min(80, text_budget))
+    while font_size >= 16:
+        font_bold = _load_font(font_size)
+        wrapped = _wrap_text(draw, text, font_bold, int(width * 0.85))
+        bbox = draw.textbbox((0, 0), wrapped, font=font_bold)
+        if bbox[3] - bbox[1] <= text_budget:
+            break
+        font_size -= 2
+
     text_height = bbox[3] - bbox[1]
-    
-    # Position text near bottom with padding
-    x = (width - text_width) // 2
-    text_padding_top = 30
-    text_padding_bottom = 30
-    y = height - text_height - text_padding_bottom
-    
-    # Draw semi-transparent white background bar (edge to edge, bottom to text top)
-    bg_top = y - text_padding_top
-    bg_bottom = height  # Extend to bottom edge
-    
-    # Create semi-transparent white background (70% opacity)
+    text_width = bbox[2] - bbox[0]
+
+    # White bar: edge-to-edge, bottom-aligned, exactly max_bar_height tall
+    bg_top = height - max_bar_height
     overlay = Image.new('RGBA', img.size, (0, 0, 0, 0))
-    overlay_draw = ImageDraw.Draw(overlay)
-    overlay_draw.rectangle(
-        [(0, bg_top), (width, bg_bottom)],
-        fill=(255, 255, 255, 179)  # 179 = 70% opacity
+    ImageDraw.Draw(overlay).rectangle(
+        [(0, bg_top), (width, height)],
+        fill=(255, 255, 255, 179)
     )
-    
-    # Composite overlay onto image
-    img = img.convert('RGBA')
-    img = Image.alpha_composite(img, overlay)
-    img = img.convert('RGB')
+    img = Image.alpha_composite(img.convert('RGBA'), overlay).convert('RGB')
     draw = ImageDraw.Draw(img)
-    
-    # Draw text in dark color for contrast on white background
-    text_color = (0, 0, 0)  # Black text on white background
-    draw.text((x, y), wrapped_text, fill=text_color, font=font_bold)
-    
+
+    # Center text in the top portion of the bar
+    x = (width - text_width) // 2
+    y = bg_top + padding
+    draw.text((x, y), wrapped, fill=(0, 0, 0), font=font_bold)
+
+    img.save(image_path, quality=95)
+    return image_path
+
+def add_cta_button(image_path, brand_color="#0066FF", cta_text="Shop now"):
+    """Add a CTA button in the lower portion of the 15% overlay bar."""
+    img = Image.open(image_path).convert('RGBA')
+    draw = ImageDraw.Draw(img)
+    width, height = img.size
+
+    max_bar_height = int(height * 0.15)
+    cta_zone_height = int(max_bar_height * 0.4)
+    cta_zone_top = height - cta_zone_height
+
+    btn_font_size = max(16, cta_zone_height // 3)
+    font = _load_font(btn_font_size)
+
+    bbox = draw.textbbox((0, 0), cta_text, font=font)
+    text_w = bbox[2] - bbox[0]
+    text_h = bbox[3] - bbox[1]
+
+    pad_x, pad_y = int(text_w * 0.4), int(text_h * 0.4)
+    btn_w = text_w + pad_x * 2
+    btn_h = text_h + pad_y * 2
+    btn_x = (width - btn_w) // 2
+    btn_y = cta_zone_top + (cta_zone_height - btn_h) // 2
+
+    bg_color = hex_to_rgb(brand_color)
+    draw.rounded_rectangle(
+        [(btn_x, btn_y), (btn_x + btn_w, btn_y + btn_h)],
+        radius=btn_h // 2,
+        fill=bg_color
+    )
+
+    tx = btn_x + (btn_w - text_w) // 2
+    ty = btn_y + (btn_h - text_h) // 2
+    draw.text((tx, ty), cta_text, fill=(255, 255, 255), font=font)
+
+    img = img.convert('RGB')
     img.save(image_path, quality=95)
     return image_path
 

@@ -1,7 +1,8 @@
 import os
 import shutil
 import random
-from services.deepai_generator import DeepAIImageGenerator
+from services.deepai_generator import DeepAIImageGenerator, SHAPE_MAP
+from utils.config import ASPECT_RATIOS
 
 def generate_image_candidates(prompt, output_prefix, n=4, use_deepai=False):
     """Lambda-ready function to generate multiple candidate images"""
@@ -38,6 +39,41 @@ def generate_image_candidates(prompt, output_prefix, n=4, use_deepai=False):
             print(f"Warning: No mock images found in {mock_dir}")
     
     return images
+
+
+def generate_shaped_variants(prompt, output_folder, use_deepai=False):
+    """Generate one image per aspect ratio using DeepAI shape selection.
+    Returns dict mapping ratio name to image path, e.g. {'1x1': '/path/1x1.jpg', ...}
+    """
+    os.makedirs(output_folder, exist_ok=True)
+    variants = {}
+
+    if use_deepai:
+        generator = DeepAIImageGenerator(headless=True)
+        try:
+            for ratio in ASPECT_RATIOS:
+                shape = SHAPE_MAP.get(ratio)
+                output_path = os.path.join(output_folder, f"{ratio}.jpg")
+                print(f"  Generating asset: {ratio} aspect ratio")
+                print(f"  Text prompt: {' '.join(prompt.split())}")
+                result = generator.generate_image(prompt, output_path, shape=shape)
+                if result:
+                    variants[ratio] = result
+                    print(f"  Image saved to: {output_path}")
+        finally:
+            generator.close()
+    else:
+        # Mock: copy same random image for each ratio
+        mock_dir = "input_assets/mock_generated"
+        mock_files = [f for f in os.listdir(mock_dir) if f.endswith(('.jpg', '.png', '.jpeg'))] if os.path.exists(mock_dir) else []
+        for ratio, size in ASPECT_RATIOS.items():
+            output_path = os.path.join(output_folder, f"{ratio}.jpg")
+            if mock_files:
+                shutil.copy(os.path.join(mock_dir, random.choice(mock_files)), output_path)
+            variants[ratio] = output_path
+
+    return variants
+
 
 def lambda_handler(event, context):
     """AWS Lambda handler"""
