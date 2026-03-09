@@ -7,18 +7,15 @@
   "products": [
     {
       "name": "PowerFlex Protein",
-      "description": "Plant-based protein powder with 25g per serving",
-      "asset": null
+      "description": "Plant-based protein powder with 25g per serving"
     },
     {
       "name": "EnduroMax Pre-Workout",
-      "description": "Natural energy boost for intense workouts",
-      "asset": null
+      "description": "Natural energy boost for intense workouts"
     },
     {
       "name": "RecoverPro Supplements",
-      "description": "Post-workout recovery formula",
-      "asset": null
+      "description": "Post-workout recovery formula"
     }
   ]
 }

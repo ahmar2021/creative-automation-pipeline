@@ -7,13 +7,11 @@
   "products": [
     {
       "name": "StudyPro Laptop",
-      "description": "Lightweight laptop with 12-hour battery life",
-      "asset": null
+      "description": "Lightweight laptop with 12-hour battery life"
     },
     {
       "name": "SmartNote Tablet",
-      "description": "Digital note-taking tablet with stylus",
-      "asset": null
+      "description": "Digital note-taking tablet with stylus"
     }
   ]
 }

@@ -41,17 +41,19 @@ def generate_image_candidates(prompt, output_prefix, n=4, use_deepai=False):
     return images
 
 
-def generate_shaped_variants(prompt, output_folder, use_deepai=False):
+def generate_shaped_variants(prompt, output_folder, use_deepai=False, ratios=None):
     """Generate one image per aspect ratio using DeepAI shape selection.
-    Returns dict mapping ratio name to image path, e.g. {'1x1': '/path/1x1.jpg', ...}
+    ratios: list of ratios to generate (e.g. ['9x16']). Defaults to all.
+    Returns dict mapping ratio name to image path.
     """
     os.makedirs(output_folder, exist_ok=True)
     variants = {}
+    target_ratios = ratios if ratios else list(ASPECT_RATIOS.keys())
 
     if use_deepai:
         generator = DeepAIImageGenerator(headless=True)
         try:
-            for ratio in ASPECT_RATIOS:
+            for ratio in target_ratios:
                 shape = SHAPE_MAP.get(ratio)
                 output_path = os.path.join(output_folder, f"{ratio}.jpg")
                 print(f"  Generating asset: {ratio} aspect ratio")
@@ -63,10 +65,9 @@ def generate_shaped_variants(prompt, output_folder, use_deepai=False):
         finally:
             generator.close()
     else:
-        # Mock: copy same random image for each ratio
         mock_dir = "input_assets/mock_generated"
         mock_files = [f for f in os.listdir(mock_dir) if f.endswith(('.jpg', '.png', '.jpeg'))] if os.path.exists(mock_dir) else []
-        for ratio, size in ASPECT_RATIOS.items():
+        for ratio in target_ratios:
             output_path = os.path.join(output_folder, f"{ratio}.jpg")
             if mock_files:
                 shutil.copy(os.path.join(mock_dir, random.choice(mock_files)), output_path)

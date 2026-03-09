@@ -8,12 +8,12 @@
     {
       "name": "GlowSerum Pro",
       "description": "Anti-aging serum with vitamin C and hyaluronic acid",
-      "asset": null
+      "asset_folder": "GlowSerum Pro"
     },
     {
       "name": "LuxeLash Mascara",
       "description": "Volumizing mascara for dramatic lashes",
-      "asset": null
+      "asset_folder": "LuxeLash Mascara"
     }
   ]
 }

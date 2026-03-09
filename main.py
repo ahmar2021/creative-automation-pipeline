@@ -2,7 +2,7 @@ import json
 import os
 import sys
 
-from services.asset_service import get_existing_asset
+from services.asset_service import get_existing_asset, get_existing_asset_variants
 from services.image_generator_service import generate_image_candidates, generate_shaped_variants
 from services.creative_scoring_service import select_best_image
 from services.image_processor_service import create_variants
@@ -11,7 +11,7 @@ from services.legal_check_service import validate_message
 from services.storage_service import get_product_output_folder
 
 from utils.prompt_builder import build_prompt
-from utils.config import TEMP_DIR
+from utils.config import TEMP_DIR, ASPECT_RATIOS
 
 def run_pipeline(brief_path, brand_config_path=None, use_deepai=False):
     """
@@ -63,11 +63,32 @@ def run_pipeline(brief_path, brand_config_path=None, use_deepai=False):
         
         # Asset Service (Lambda 2)
         asset = get_existing_asset(product, brief["brand_id"])
+        asset_variants = get_existing_asset_variants(product, brief["brand_id"])
         
         # Storage Service (Lambda 5)
         output_folder = get_product_output_folder(product["name"], brief["campaign_name"], run_timestamp, brief["brand_id"])
 
-        if asset:
+        if asset_variants:
+            # Pre-made aspect ratio assets — copy to output
+            import shutil
+            os.makedirs(output_folder, exist_ok=True)
+            variants = []
+            for ratio, src_path in asset_variants.items():
+                dst_path = os.path.join(output_folder, f"{ratio}.jpg")
+                shutil.copy2(src_path, dst_path)
+                variants.append(dst_path)
+            print(f"✓ Using pre-made assets from: {product.get('asset_folder')}")
+            print(f"  Loaded {len(variants)} variants")
+
+            # Generate missing ratios
+            missing = [r for r in ASPECT_RATIOS if r not in asset_variants]
+            if missing:
+                print(f"✓ Generating missing ratios: {', '.join(missing)}")
+                prompt = build_prompt(product, brief)
+                generated = generate_shaped_variants(prompt, output_folder, use_deepai=use_deepai, ratios=missing)
+                variants.extend(generated.values())
+                print(f"  Generated {len(generated)} additional variants")
+        elif asset:
             hero_image = asset
             print(f"✓ Using existing asset: {asset}")
             # Resize existing asset into variants

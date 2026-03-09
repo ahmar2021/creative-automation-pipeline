@@ -7,13 +7,11 @@
   "products": [
     {
       "name": "SolarCharge Power Bank",
-      "description": "Eco-friendly solar-powered charging solution",
-      "asset": null
+      "description": "Eco-friendly solar-powered charging solution"
     },
     {
       "name": "BambooWare Kitchen Set",
-      "description": "Sustainable bamboo utensils and containers",
-      "asset": null
+      "description": "Sustainable bamboo utensils and containers"
     }
   ]
 }

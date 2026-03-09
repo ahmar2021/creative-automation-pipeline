@@ -7,13 +7,11 @@
   "products": [
     {
       "name": "HydraBoost Water",
-      "description": "Premium electrolyte water",
-      "asset": "hydraboost.jpg"
+      "description": "Premium electrolyte water"
     },
     {
       "name": "VitaSpark Energy",
-      "description": "Natural vitamin energy drink",
-      "asset": null
+      "description": "Natural vitamin energy drink"
     }
   ]
 }
