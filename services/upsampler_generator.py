@@ -95,6 +95,11 @@ class UpsamplerImageGenerator:
         img_url = None
         for _ in range(15):
             time.sleep(2)
+            # Check for rate limit or error messages
+            page_text = self.driver.find_element(By.TAG_NAME, "body").text
+            if "exceeded" in page_text.lower() and "gpu" in page_text.lower():
+                print("  ✗ Rate limited: could not generate images")
+                return None
             for img in self.driver.find_elements(By.TAG_NAME, "img"):
                 src = img.get_attribute("src") or ""
                 alt = img.get_attribute("alt") or ""
