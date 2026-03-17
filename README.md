@@ -65,6 +65,24 @@ python3 -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
+### Usage
+
+```
+usage: main.py [-h] [--deepai] [--zimage] [--wan] [--qwen] [--flux9b] [--flux4b] [brief]
+
+positional arguments:
+  brief       path to campaign brief JSON file (default: briefs/hydralife_campaign.json)
+
+options:
+  -h, --help  show this help message and exit
+  --deepai    use DeepAI for image generation
+  --zimage    use Upsampler with Z-Image Turbo
+  --wan       use Upsampler with Wan 2.2 14B
+  --qwen      use Upsampler with Qwen Image
+  --flux9b    use Upsampler with Flux 2 Klein 9B
+  --flux4b    use Upsampler with Flux 2 Klein 4B
+```
+
 ### Run Pipeline
 
 **Mock Mode with pre-made assets (LuxeBeauty):**

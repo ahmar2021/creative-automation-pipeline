@@ -162,23 +162,29 @@ def run_pipeline(brief_path, brand_config_path=None, use_deepai=False, upsampler
     print(f"{'='*60}\n")
 
 if __name__ == "__main__":
-    # Parse command line arguments
-    import sys
-    
-    use_deepai = "--deepai" in sys.argv
-    upsampler_model = None
-    for arg in sys.argv[1:]:
-        if arg.startswith("--") and arg[2:] in MODEL_MAP:
-            upsampler_model = arg[2:]
-    
-    # Get brief path from command line or use default
-    brief_path = "briefs/hydralife_campaign.json"
-    for arg in sys.argv[1:]:
-        if arg.endswith('.json'):
-            brief_path = arg
-            break
-    
-    if not use_deepai and not upsampler_model:
-        print("\n🎭 Using mock images (add --deepai or --wan/--qwen/--zimage/--flux9b/--flux4b for real generation)\n")
-    
-    run_pipeline(brief_path, use_deepai=use_deepai, upsampler_model=upsampler_model)
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Creative Automation Pipeline - Generate ad creatives from campaign briefs",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""examples:
+  python3 main.py briefs/hydralife_campaign.json
+  python3 main.py briefs/hydralife_campaign.json --deepai
+  python3 main.py briefs/glossveil_campaign.json --flux4b
+""")
+    parser.add_argument("brief", nargs="?", default="briefs/hydralife_campaign.json",
+                        help="path to campaign brief JSON file (default: briefs/hydralife_campaign.json)")
+    parser.add_argument("--deepai", action="store_true",
+                        help="use DeepAI for image generation")
+    model_group = parser.add_mutually_exclusive_group()
+    for key, label in MODEL_MAP.items():
+        model_group.add_argument(f"--{key}", action="store_true", help=f"use Upsampler with {label}")
+
+    args = parser.parse_args()
+
+    upsampler_model = next((k for k in MODEL_MAP if getattr(args, k)), None)
+
+    if not args.deepai and not upsampler_model:
+        print("\n🎭 Using mock images (add --deepai or a model flag for real generation)\n")
+
+    run_pipeline(args.brief, use_deepai=args.deepai, upsampler_model=upsampler_model)
