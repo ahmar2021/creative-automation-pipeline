@@ -91,9 +91,9 @@ class UpsamplerImageGenerator:
                 self.driver.execute_script("arguments[0].click();", btn)
                 break
 
-        # Poll for generated image (up to 90s)
+        # Poll for generated image (up to 30s)
         img_url = None
-        for _ in range(45):
+        for _ in range(15):
             time.sleep(2)
             for img in self.driver.find_elements(By.TAG_NAME, "img"):
                 src = img.get_attribute("src") or ""
