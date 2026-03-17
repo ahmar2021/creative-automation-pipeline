@@ -11,8 +11,32 @@ from services.creative_composer_service import add_text_overlay, add_logo, add_c
 from services.legal_check_service import validate_message
 from services.storage_service import get_product_output_folder
 
-from utils.prompt_builder import build_prompt
+from utils.prompt_builder import build_prompt, REQUIRED_PRODUCT_FIELDS, REQUIRED_BRIEF_FIELDS
 from utils.config import TEMP_DIR, ASPECT_RATIOS
+
+REQUIRED_BRIEF_TOP_FIELDS = ['campaign_name', 'brand_id', 'message', 'products'] + REQUIRED_BRIEF_FIELDS
+
+
+def _validate_brief(brief, brief_path):
+    errors = []
+
+    missing = [f for f in REQUIRED_BRIEF_TOP_FIELDS if f not in brief]
+    if missing:
+        errors.append(f"  Campaign brief is missing required fields: {', '.join(missing)}")
+
+    for i, product in enumerate(brief.get('products', [])):
+        missing = [f for f in REQUIRED_PRODUCT_FIELDS if f not in product]
+        if missing:
+            errors.append(f"  Product #{i + 1} is missing required fields: {', '.join(missing)}")
+
+    if errors:
+        print(f"\n✗ Validation failed for '{brief_path}':")
+        for e in errors:
+            print(e)
+        print(f"\n  Required brief fields: {', '.join(REQUIRED_BRIEF_TOP_FIELDS)}")
+        print(f"  Required product fields: {', '.join(REQUIRED_PRODUCT_FIELDS)}")
+        sys.exit(1)
+
 
 def run_pipeline(brief_path, brand_config_path=None, use_deepai=False, upsampler_model=None):
     """
@@ -23,6 +47,9 @@ def run_pipeline(brief_path, brand_config_path=None, use_deepai=False, upsampler
     # Load campaign brief
     with open(brief_path) as f:
         brief = json.load(f)
+    
+    # Validate brief and product fields early
+    _validate_brief(brief, brief_path)
     
     # Load brand guidelines based on brand_id from brief
     brand_id = brief.get("brand_id")
